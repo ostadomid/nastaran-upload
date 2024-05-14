@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\File;
 use Inertia\Inertia;
 use Pion\Laravel\ChunkUpload\Exceptions\UploadMissingFileException;
@@ -19,6 +20,7 @@ class UploadController extends Controller
     }
     function create(Request $request)
     {
+        $r = new FileReceiver("", $request, ContentRangeUploadHandler::class);
 
         $receiver = new FileReceiver(
             UploadedFile::fake()->createWithContent('videoFile', $request->getContent()),

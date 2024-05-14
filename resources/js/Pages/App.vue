@@ -1,17 +1,26 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, type Ref } from "vue";
 import { Head, router, useForm, usePage } from "@inertiajs/vue3";
 import ArrowIcon from "@/Components/ArrowIcon.vue";
 import { createUpload } from "@mux/upchunk";
 import CircularProgress from "@/Components/CircularProgress.vue";
 import { computed } from "vue";
+import { nextTick } from "vue";
 
 const file = ref<null | HTMLInputElement>(null);
 const video = ref<null | HTMLInputElement>(null);
+const ul = ref<null | HTMLUListElement>(null);
 const form = useForm({ videoFile: null });
 const isUploading = ref(false);
 const percentage = ref(0);
 const flash = computed(() => usePage().props["flash"]);
+const showDetails = ref(false);
+const details: Ref<Array<String>> = ref([""]);
+const uploaderInstance = ref(null);
+
+function tryAgain() {
+    uploaderInstance.value?.resume();
+}
 
 function upload() {
     if (file.value && file.value.files?.[0]) {
@@ -41,6 +50,8 @@ function handleSubmit() {
     if (!form.videoFile) {
         return alert("No file selecte!");
     }
+    details.value = [];
+    showDetails.value = true;
 
     const uploader = createUpload({
         endpoint: "/upload",
@@ -49,11 +60,29 @@ function handleSubmit() {
         headers: {
             "X-CSRF-TOKEN": usePage().props["csrf"] as string,
         },
-        chunkSize: 10 * 1024,
+        chunkSize: 1 * 1024,
+        attempts: 15,
     });
-    uploader.on("attempt", () => {
+    uploaderInstance.value = uploader;
+    uploader.on("attempt", ({ detail }) => {
+        details.value.push(`🤲 Uploading [${detail.chunkNumber}]`);
+        ul.value.scrollTo(0, ul.value.scrollHeight);
         // error = null
         // uploading = true
+    });
+    uploader.on("chunkSuccess", ({ detail }) => {
+        details.value.push(`✅ Uploaded[${detail.chunk}]`);
+        nextTick(() => {
+            ul.value.scrollTo(0, ul.value.scrollHeight);
+        });
+    });
+    uploader.on("attemptFailure", ({ detail }) => {
+        details.value.push(
+            `⚠ Trying Again[${detail.chunkNumber}][Left:${detail.attemptsLeft}]`
+        );
+        nextTick(() => {
+            ul.value.scrollTo(0, ul.value.scrollHeight);
+        });
     });
 
     uploader.on("progress", (p) => {
@@ -63,6 +92,8 @@ function handleSubmit() {
     });
 
     uploader.on("success", (e) => {
+        details.value = [];
+        showDetails.value = false;
         console.log("Done!");
         console.log(usePage().props);
         isUploading.value = false;
@@ -70,8 +101,26 @@ function handleSubmit() {
         router.reload();
     });
 
-    uploader.on("error", (error) => {
-        console.error(error.detail.message);
+    uploader.on("error", ({ detail }) => {
+        details.value.push(
+            `❌ Chunk Number ${detail.chunkNumber} Failed [Attempts=${detail.attempts}]!!!`
+        );
+        nextTick(() => {
+            ul.value.scrollTo(0, ul.value.scrollHeight);
+        });
+        console.error(detail.message);
+    });
+    uploader.on("offline", () => {
+        details.value.push("🚨 Internet Offline");
+        nextTick(() => {
+            ul.value.scrollTo(0, ul.value.scrollHeight);
+        });
+    });
+    uploader.on("online", () => {
+        details.value.push("🌍 Internet Online");
+        nextTick(() => {
+            ul.value.scrollTo(0, ul.value.scrollHeight);
+        });
     });
 }
 </script>
@@ -119,6 +168,15 @@ function handleSubmit() {
                 {{ form.errors.videoFile }}
             </p>
             <CircularProgress v-if="isUploading" :percentage="percentage" />
+            <ul
+                ref="ul"
+                v-show="showDetails"
+                class="bg-white/50 rounded-md max-h-56 overflow-y-auto"
+            >
+                <li v-for="(line, idx) in details" :key="idx">
+                    {{ line }}
+                </li>
+            </ul>
             <button
                 :disabled="isUploading"
                 type="submit"
@@ -126,6 +184,7 @@ function handleSubmit() {
             >
                 {{ isUploading ? "⚡ Uploading..." : "🏁 Start" }}
             </button>
+            <button @click="tryAgain">Try Again</button>
         </form>
     </div>
 </template>

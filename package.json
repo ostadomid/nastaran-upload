@@ -18,6 +18,7 @@
         "vue": "^3.4.0"
     },
     "dependencies": {
-        "@mux/upchunk": "^3.3.3"
+        "@mux/upchunk": "^3.3.3",
+        "async-mutex": "^0.5.0"
     }
 }

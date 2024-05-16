@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
 
-const props = defineProps<{ percentage: number }>();
+const props = defineProps<{
+    percentage: number;
+    size?: number;
+    textColor?: string;
+}>();
 const done = computed(
     () => ((100 - props.percentage) * 4.24).toFixed(0) + "px"
 );
@@ -18,8 +22,8 @@ const xCord = computed(() => {
 </script>
 <template>
     <svg
-        width="155"
-        height="155"
+        :width="size ?? 155"
+        :height="size ?? 155"
         viewBox="-19.375 -19.375 193.75 193.75"
         version="1.1"
         xmlns="http://www.w3.org/2000/svg"
@@ -39,7 +43,7 @@ const xCord = computed(() => {
             r="67.5"
             cx="77.5"
             cy="77.5"
-            :stroke="done === '0%' ? '#e0e0e0' : '#76e5b1'"
+            :stroke="done === '0%' ? '#e0e0e0' : '#94ff78'"
             stroke-width="20"
             stroke-linecap="round"
             :stroke-dashoffset="done"
@@ -49,7 +53,7 @@ const xCord = computed(() => {
         <text
             :x="xCord"
             y="91px"
-            fill="#6bdba7"
+            :fill="textColor ?? '#6bdba7'"
             font-size="25px"
             font-weight="bold"
             style="transform: rotate(90deg) translate(0px, -159px)"

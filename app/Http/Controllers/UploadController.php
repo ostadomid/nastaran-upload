@@ -7,6 +7,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rules\File;
 use Inertia\Inertia;
+use PDO;
 use Pion\Laravel\ChunkUpload\Exceptions\UploadMissingFileException;
 use Pion\Laravel\ChunkUpload\Handler\ContentRangeUploadHandler;
 use Pion\Laravel\ChunkUpload\Receiver\FileReceiver;
@@ -20,10 +21,13 @@ class UploadController extends Controller
     }
     function create(Request $request)
     {
-        $r = new FileReceiver("", $request, ContentRangeUploadHandler::class);
+        $fileNameFromHeader = $request->header('X-FILE-NAME', 'videoFile');
+        if (($justFileName = mb_strrchr($fileNameFromHeader, ".", true)) !== false) {
+            $fileNameFromHeader = $justFileName;
+        }
 
         $receiver = new FileReceiver(
-            UploadedFile::fake()->createWithContent('videoFile', $request->getContent()),
+            UploadedFile::fake()->createWithContent($fileNameFromHeader, $request->getContent()),
             $request,
             ContentRangeUploadHandler::class
         );
@@ -35,11 +39,10 @@ class UploadController extends Controller
         $receivedFile = $receiver->receive();
 
         if ($receivedFile->isFinished()) {
-            $newName = "Yoga-" . date("Y_m_d__H_i_s") . "." . $receivedFile->getFile()->guessExtension();
+            $newName = "[" . date("Y_m_d__H_i_s") . "]-" . $fileNameFromHeader . "." . $receivedFile->getFile()->guessExtension();
             $receivedFile->getFile()->storeAs('videos', $newName, 'public');
-            session()->put("flash", "file $newName saved!");
+            //session()->put("flash", "file $newName saved!");
         }
-
         // $save->handler();
     }
 }

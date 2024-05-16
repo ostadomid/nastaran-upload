@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+        "lib": ["ES5", "DOM", "ESNext", "ES6"],
         "baseUrl": ".",
         "paths": {
             "@/*": ["resources/js/*"],
